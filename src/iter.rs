@@ -21,8 +21,10 @@ macro_rules! yield_from {
     }
 }
 
+/// A macro for yielding from an option.
+/// Yields whenever the variant is Some, returns otherwise.
 #[macro_export]
-macro_rules! yield_return {
+macro_rules! try_yield {
     ($option:expr) => {
         match $option {
             Some(x) => yield x,
@@ -66,13 +68,30 @@ where
 
 /// Creates an Iterator that alternates between generating the item `at the front`,
 /// and then generating the item `at the back`
-pub fn alternating<I>(mut iter: I) -> impl Iterator<Item = I::Item>
+pub fn alternate<I>(mut iter: I) -> impl Iterator<Item = I::Item>
 where
     I: DoubleEndedIterator
 {
     iter!(loop {
-        yield_return!(iter.next());
-        yield_return!(iter.next_back());
+        try_yield!(iter.next());
+        try_yield!(iter.next_back());
+    })
+}
+
+/// Creates an Iterator that generates the first `n` items `at the front`,
+/// and then generates `n` items `at the back`, repeating untill no items are left.
+pub fn alternate_by<I>(mut iter: I, n: usize) -> impl Iterator<Item = I::Item>
+where
+    I: DoubleEndedIterator
+{
+    iter!(loop {
+        for _ in 0..n {
+            try_yield!(iter.next());
+        }
+
+        for _ in 0..n {
+            try_yield!(iter.next_back());
+        }
     })
 }
 
@@ -81,10 +100,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn alternate() {
-        let r = (0..10);
+    fn alternating() {
 
-        let mut alternate = alternating(r);
+        let mut alternate = alternate(0..10);
 
         assert_eq!(alternate.next(), Some(0));
         assert_eq!(alternate.next(), Some(9));
