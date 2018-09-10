@@ -1,4 +1,5 @@
 use geniter::GenIter;
+use std::ops::{Generator, GeneratorState};
 
 #[macro_export]
 macro_rules! iter {
@@ -14,7 +15,7 @@ macro_rules! yield_from {
             unsafe {
                 match $gen.resume() {
                     GeneratorState::Yielded(y) => yield y,
-                    GeneratoreState::Complete(_) => break,
+                    GeneratorState::Complete(_) => break,
                 }
             }
         }
@@ -99,6 +100,27 @@ where
     })
 }
 
+pub fn flatten<I, U>(iter: I) -> impl Iterator<Item = <I::Item as Iterator>::Item>
+where
+    I: Iterator,
+    I::Item: Iterator
+{
+    iter!(
+        for it in iter {
+            for x in it {
+                yield x
+            }
+        }
+    )
+}
+
+pub fn prepend<I>(value: I::Item, iter: I) -> impl Iterator<Item = I::Item>
+where
+    I: Iterator,
+{
+        ::std::iter::once(value).chain(iter)
+}
+
 pub fn islice<I>(
     iter: I,
     start: Option<usize>,
@@ -157,6 +179,25 @@ where
             }
         }
     })
+}
+
+pub fn doublecunks<'a, T: 'a>(s: &'a [T], n: usize) -> impl Iterator<Item = (&'a [T], &'a [T])> {
+    iter!(
+        if s.len() < n * 2 { return }
+        else {
+            let (head, rest) = s.split_at(n);
+            let restlen = rest.len();
+            let (rest, tail) = rest.split_at(restlen - n);
+
+            yield (head, tail);
+
+            {
+                for (h, t) in doublecunks(rest, n) {
+                    yield (h, t)
+                }
+            }
+        }
+    )
 }
 
 #[cfg(test)]
