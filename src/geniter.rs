@@ -11,7 +11,7 @@ impl<G> GenIter<G> {
         self.0.as_mut()
     }
 
-    pub fn take(&mut self) -> Option<G> {
+    pub fn taken(&mut self) -> Option<G> {
         self.0.take()
     }
 }
@@ -23,7 +23,7 @@ where
     type Item = G::Yield;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut gen = self.take()?;
+        let mut gen = self.taken()?;
 
         unsafe {
             match gen.resume() {

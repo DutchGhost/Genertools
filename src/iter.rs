@@ -34,6 +34,14 @@ macro_rules! try_yield {
     };
 }
 
+macro_rules! g {
+    ($exp:expr, for $i:ident in $iter:expr) => {
+        for $i in $iter {
+            yield $exp
+        }
+    };
+}
+
 /// Creates an Iterator that only produces one item.
 pub fn once<T>(x: T) -> impl Iterator<Item = T> {
     iter!(yield x)
@@ -103,22 +111,18 @@ where
 pub fn flatten<I, U>(iter: I) -> impl Iterator<Item = <I::Item as Iterator>::Item>
 where
     I: Iterator,
-    I::Item: Iterator
+    I::Item: Iterator,
 {
-    iter!(
-        for it in iter {
-            for x in it {
-                yield x
-            }
-        }
-    )
+    iter!(for it in iter {
+        g!(x, for x in it)
+    })
 }
 
 pub fn prepend<I>(value: I::Item, iter: I) -> impl Iterator<Item = I::Item>
 where
     I: Iterator,
 {
-        ::std::iter::once(value).chain(iter)
+    ::std::iter::once(value).chain(iter)
 }
 
 pub fn islice<I>(
@@ -131,73 +135,26 @@ where
     I: Iterator,
 {
     iter!(match (start, stop, step) {
-        (None, None, None) => {
-            for item in iter {
-                yield item
-            }
-        }
+        (None, None, None) => g!(x, for x in iter),
 
-        (None, None, Some(it_step)) => {
-            for item in iter.step_by(it_step) {
-                yield item
-            }
-        }
+        (None, None, Some(it_step)) => g!(x, for x in iter.step_by(it_step)),
 
-        (None, Some(it_stop), None) => {
-            for item in iter.take(it_stop) {
-                yield item
-            }
-        }
+        (None, Some(it_stop), None) => g!(x, for x in iter.take(it_stop)),
 
-        (None, Some(it_stop), Some(it_step)) => {
-            for item in iter.step_by(it_step).take(it_stop) {
-                yield item
-            }
-        }
+        (None, Some(it_stop), Some(it_step)) => g!(x, for x in iter.step_by(it_step).take(it_stop)),
 
-        (Some(it_start), None, None) => {
-            for item in iter.skip(it_start) {
-                yield item
-            }
-        }
+        (Some(it_start), None, None) => g!(x, for x in iter.skip(it_start)),
 
         (Some(it_start), None, Some(it_step)) => {
-            for item in iter.skip(it_start).step_by(it_step) {
-                yield item
-            }
+            g!(x, for x in iter.skip(it_start).step_by(it_step))
         }
 
-        (Some(it_start), Some(it_stop), None) => {
-            for item in iter.skip(it_start).take(it_stop) {
-                yield item
-            }
-        }
+        (Some(it_start), Some(it_stop), None) => g!(x, for x in iter.skip(it_start).take(it_stop)),
 
         (Some(it_start), Some(it_stop), Some(it_step)) => {
-            for item in iter.skip(it_start).step_by(it_step).take(it_stop) {
-                yield item
-            }
+            g!(x, for x in iter.skip(it_start).step_by(it_step).take(it_stop))
         }
     })
-}
-
-pub fn doublecunks<'a, T: 'a>(s: &'a [T], n: usize) -> impl Iterator<Item = (&'a [T], &'a [T])> {
-    iter!(
-        if s.len() < n * 2 { return }
-        else {
-            let (head, rest) = s.split_at(n);
-            let restlen = rest.len();
-            let (rest, tail) = rest.split_at(restlen - n);
-
-            yield (head, tail);
-
-            {
-                for (h, t) in doublecunks(rest, n) {
-                    yield (h, t)
-                }
-            }
-        }
-    )
 }
 
 #[cfg(test)]
