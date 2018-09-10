@@ -2,7 +2,7 @@ use std::ops::{Generator, GeneratorState};
 
 pub struct GenIter<G>(Option<G>);
 
-impl <G> GenIter<G> {
+impl<G> GenIter<G> {
     pub fn new(generator: G) -> Self {
         GenIter(Some(generator))
     }
@@ -16,9 +16,9 @@ impl <G> GenIter<G> {
     }
 }
 
-impl <G> Iterator for GenIter<G>
+impl<G> Iterator for GenIter<G>
 where
-    G: Generator
+    G: Generator,
 {
     type Item = G::Yield;
 
@@ -30,7 +30,7 @@ where
                 GeneratorState::Yielded(y) => {
                     self.0 = Some(gen);
                     Some(y)
-                },
+                }
                 GeneratorState::Complete(_) => None,
             }
         }

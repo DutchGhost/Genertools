@@ -18,7 +18,7 @@ macro_rules! yield_from {
                 }
             }
         }
-    }
+    };
 }
 
 /// A macro for yielding from an option.
@@ -30,7 +30,7 @@ macro_rules! try_yield {
             Some(x) => yield x,
             None => return,
         }
-    }
+    };
 }
 
 /// Creates an Iterator that only produces one item.
@@ -40,12 +40,16 @@ pub fn once<T>(x: T) -> impl Iterator<Item = T> {
 
 /// Creates an Iterator that repeats the same item forever.
 pub fn repeat<T: Copy>(x: T) -> impl Iterator<Item = T> {
-    iter!(loop { yield x })
+    iter!(loop {
+        yield x
+    })
 }
 
 /// Creates an Iterator that repeats the same item for `n` times.
 pub fn repeatn<T: Copy>(x: T, n: usize) -> impl Iterator<Item = T> {
-    iter!(for _ in 0..n { yield x })
+    iter!(for _ in 0..n {
+        yield x
+    })
 }
 
 /// Creates an Iterator that filters elements based on the predicate.
@@ -70,7 +74,7 @@ where
 /// and then generating the item `at the back`
 pub fn alternate<I>(mut iter: I) -> impl Iterator<Item = I::Item>
 where
-    I: DoubleEndedIterator
+    I: DoubleEndedIterator,
 {
     iter!(loop {
         try_yield!(iter.next());
@@ -82,7 +86,7 @@ where
 /// and then generates `n` items `at the back`, repeating untill no items are left.
 pub fn alternate_by<I>(mut iter: I, n: usize) -> impl Iterator<Item = I::Item>
 where
-    I: DoubleEndedIterator
+    I: DoubleEndedIterator,
 {
     iter!(loop {
         for _ in 0..n {
@@ -95,63 +99,64 @@ where
     })
 }
 
-pub fn islice<I>(iter: I, start: Option<usize>, stop: Option<usize>, step: Option<usize>) -> impl Iterator<Item = I::Item>
+pub fn islice<I>(
+    iter: I,
+    start: Option<usize>,
+    stop: Option<usize>,
+    step: Option<usize>,
+) -> impl Iterator<Item = I::Item>
 where
-    I: Iterator
+    I: Iterator,
 {
-    iter!(
-
-        match (start, stop, step) {
-
-            (None, None, None) => {
-                for item in iter {
-                    yield item
-                }
-            }
-
-            (None, None, Some(it_step)) => {
-                for item in iter.step_by(it_step) {
-                    yield item
-                }
-            }
-
-            (None, Some(it_stop), None) => {
-                for item in iter.take(it_stop) {
-                    yield item
-                }
-            }
-
-            (None, Some(it_stop), Some(it_step)) => {
-                for item in iter.step_by(it_step).take(it_stop) {
-                    yield item
-                }
-            }
-
-            (Some(it_start), None, None) => {
-                for item in iter.skip(it_start) {
-                    yield item
-                }
-            }
-
-            (Some(it_start), None, Some(it_step)) => {
-                for item in iter.skip(it_start).step_by(it_step) {
-                    yield item
-                }
-            }
-
-            (Some(it_start), Some(it_stop), None) => {
-                for item in iter.skip(it_start).take(it_stop) {
-                    yield item
-                }
-            }
-
-            (Some(it_start), Some(it_stop), Some(it_step)) => {
-                for item in iter.skip(it_start).step_by(it_step).take(it_stop) {
-                    yield item
-                }
+    iter!(match (start, stop, step) {
+        (None, None, None) => {
+            for item in iter {
+                yield item
             }
         }
-    )
+
+        (None, None, Some(it_step)) => {
+            for item in iter.step_by(it_step) {
+                yield item
+            }
+        }
+
+        (None, Some(it_stop), None) => {
+            for item in iter.take(it_stop) {
+                yield item
+            }
+        }
+
+        (None, Some(it_stop), Some(it_step)) => {
+            for item in iter.step_by(it_step).take(it_stop) {
+                yield item
+            }
+        }
+
+        (Some(it_start), None, None) => {
+            for item in iter.skip(it_start) {
+                yield item
+            }
+        }
+
+        (Some(it_start), None, Some(it_step)) => {
+            for item in iter.skip(it_start).step_by(it_step) {
+                yield item
+            }
+        }
+
+        (Some(it_start), Some(it_stop), None) => {
+            for item in iter.skip(it_start).take(it_stop) {
+                yield item
+            }
+        }
+
+        (Some(it_start), Some(it_stop), Some(it_step)) => {
+            for item in iter.skip(it_start).step_by(it_step).take(it_stop) {
+                yield item
+            }
+        }
+    })
 }
 
 #[cfg(test)]
@@ -160,7 +165,6 @@ mod tests {
 
     #[test]
     fn alternating() {
-
         let mut alternate = alternate(0..10);
 
         assert_eq!(alternate.next(), Some(0));
