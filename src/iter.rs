@@ -95,6 +95,65 @@ where
     })
 }
 
+pub fn islice<I>(iter: I, start: Option<usize>, stop: Option<usize>, step: Option<usize>) -> impl Iterator<Item = I::Item>
+where
+    I: Iterator
+{
+    iter!(
+
+        match (start, stop, step) {
+
+            (None, None, None) => {
+                for item in iter {
+                    yield item
+                }
+            }
+
+            (None, None, Some(it_step)) => {
+                for item in iter.step_by(it_step) {
+                    yield item
+                }
+            }
+
+            (None, Some(it_stop), None) => {
+                for item in iter.take(it_stop) {
+                    yield item
+                }
+            }
+
+            (None, Some(it_stop), Some(it_step)) => {
+                for item in iter.step_by(it_step).take(it_stop) {
+                    yield item
+                }
+            }
+
+            (Some(it_start), None, None) => {
+                for item in iter.skip(it_start) {
+                    yield item
+                }
+            }
+
+            (Some(it_start), None, Some(it_step)) => {
+                for item in iter.skip(it_start).step_by(it_step) {
+                    yield item
+                }
+            }
+
+            (Some(it_start), Some(it_stop), None) => {
+                for item in iter.skip(it_start).take(it_stop) {
+                    yield item
+                }
+            }
+
+            (Some(it_start), Some(it_stop), Some(it_step)) => {
+                for item in iter.skip(it_start).step_by(it_step).take(it_stop) {
+                    yield item
+                }
+            }
+        }
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,5 +174,27 @@ mod tests {
         assert_eq!(alternate.next(), Some(4));
         assert_eq!(alternate.next(), Some(5));
         assert_eq!(alternate.next(), None);
+    }
+
+    #[test]
+    fn slicing() {
+        let mut iter = islice(0..10, Some(3), None, None);
+
+        assert_eq!(iter.next(), Some(3));
+
+        // an Iterator over the characters, starting after 1 element, taking 3 elements of an iterator that steps by 2
+        let mut chariter = islice("ABCDEFGHI".chars(), Some(1), Some(3), Some(2));
+
+        assert_eq!(chariter.next(), Some('B'));
+        assert_eq!(chariter.next(), Some('D'));
+        assert_eq!(chariter.next(), Some('F'));
+        assert_eq!(chariter.next(), None);
+
+        let mut r = 1..=10;
+        let list = islice(&mut r, None, Some(3), Some(2)).collect::<Vec<_>>();
+
+        assert_eq!(list, [1, 3, 5]);
+
+        assert_eq!(r.next(), Some(6));
     }
 }
