@@ -4,7 +4,7 @@ use std::ops::{Generator, GeneratorState};
 #[macro_export]
 macro_rules! iter {
     ($($b:tt)*) => {
-        GenIter::new(move || { $($b)* })
+        $crate::geniter::GenIter::new(move || { $($b)* })
     }
 }
 
@@ -59,6 +59,17 @@ pub fn repeatn<T: Copy>(x: T, n: usize) -> impl Iterator<Item = T> {
     iter!(for _ in 0..n {
         yield x
     })
+}
+
+pub fn count(start: Option<usize>, step: Option<usize>) -> impl Iterator<Item = usize> {
+    iter!(
+        let mut start = start.unwrap_or(0);
+        let step = step.unwrap_or(1);
+        loop {
+            yield start;
+            start += step;
+        }
+    )
 }
 
 /// Creates an Iterator that filters elements based on the predicate.
