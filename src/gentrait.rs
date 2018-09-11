@@ -1,12 +1,14 @@
 use std::ops::{Generator, GeneratorState};
+use std::pin::PinMut;
+use std::ops::Deref;
 
 pub trait GenTrait {
     type Yielding;
     type Returning;
 
-    fn next(&mut self) -> Option<Self::Yielding>;
+    fn next(PinMut<Self>) -> Option<Self::Yielding>;
 
-    fn resume(&mut self) -> GeneratorState<Self::Yielding, Self::Returning>;
+    unsafe fn resume(PinMut<Self>) -> GeneratorState<Self::Yielding, Self::Returning>;
 
     fn map<U, F>(self, f: F) -> Map<Self, F>
     where
@@ -24,15 +26,15 @@ where
     type Yielding = G::Yield;
     type Returning = G::Return;
 
-    fn next(&mut self) -> Option<Self::Yielding> {
-        match unsafe { self.resume() } {
+    fn next(ptr: PinMut<Self>) -> Option<Self::Yielding> {
+        match unsafe { ptr.resume() } {
             GeneratorState::Yielded(y) => Some(y),
             GeneratorState::Complete(_) => None,
         }
     }
 
-    fn resume(&mut self) -> GeneratorState<Self::Yielding, Self::Returning> {
-        unsafe { <Self as Generator>::resume(self) }
+    unsafe fn resume(ptr: PinMut<Self>) -> GeneratorState<Self::Yielding, Self::Returning> {
+        <Self as Generator>::resume(PinMut::get_mut(ptr.reborrow()))
     }
 }
 
@@ -71,7 +73,7 @@ mod tests {
 
     #[test]
     fn generator_map() {
-        let mut g = move || {
+        let g = move || {
             yield 10;
             yield 20;
             yield 30;
