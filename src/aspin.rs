@@ -1,12 +1,10 @@
 use std::pin::PinMut;
 use std::marker::Unpin;
 
-use std::borrow::Cow;
-use std::ops::DerefMut;
-
 /// Converts a mutable reference into a Pinned reference.
 pub trait AsPin<T: ?Sized + Unpin> {
 
+    /// Performs the conver
     fn as_pin(&mut self) -> PinMut<T>;
 }
 
