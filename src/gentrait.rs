@@ -1,7 +1,7 @@
 use std::ops::{Generator, GeneratorState};
 use std::pin::PinMut;
 use std::marker::Unpin;
-use pinmut::AsPin;
+use aspin::AsPin;
 
 pub trait GenTrait {
     type Yielding;
@@ -61,6 +61,12 @@ impl <G, F> Map<G, F> {
     }
 }
 
+impl <F, G: Unpin> AsPin<G> for Map<G, F> {
+    fn as_pin(&mut self) -> PinMut<G> {
+        PinMut::new(&mut self.generator)
+    }
+}
+
 impl <U, G, F> Generator for Map<G, F>
 where
     G: Generator,
@@ -88,6 +94,12 @@ impl <G, F> Filter<G, F> {
             generator,
             pred
         }
+    }
+}
+
+impl <F, G: Unpin> AsPin<G> for Filter<G, F> {
+    fn as_pin(&mut self) -> PinMut<G> {
+        PinMut::new(&mut self.generator)
     }
 }
 
