@@ -1,5 +1,6 @@
 use std::ops::{Generator, GeneratorState};
 use std::pin::PinMut;
+use std::marker::Unpin;
 use std::ops::Deref;
 
 pub trait GenTrait {
@@ -17,23 +18,30 @@ pub trait GenTrait {
     {
         Map::new(self, f)
     }
+
+    fn freeze(&mut self) -> PinMut<Self>
+    where
+        Self: Unpin
+    {
+        PinMut::new(self)
+    }
 }
 
 impl <G> GenTrait for G
 where
-    G: Generator
+    G: Generator + Unpin
 {
     type Yielding = G::Yield;
     type Returning = G::Return;
 
-    fn next(ptr: PinMut<Self>) -> Option<Self::Yielding> {
-        match unsafe { ptr.resume() } {
+    fn next(mut ptr: PinMut<Self>) -> Option<Self::Yielding> {
+        match unsafe { PinMut::get_mut(ptr.reborrow()).resume() } {
             GeneratorState::Yielded(y) => Some(y),
             GeneratorState::Complete(_) => None,
         }
     }
 
-    unsafe fn resume(ptr: PinMut<Self>) -> GeneratorState<Self::Yielding, Self::Returning> {
+    unsafe fn resume(mut ptr: PinMut<Self>) -> GeneratorState<Self::Yielding, Self::Returning> {
         <Self as Generator>::resume(PinMut::get_mut(ptr.reborrow()))
     }
 }
@@ -59,6 +67,7 @@ where
 {
     type Yield = U;
     type Return = G::Return;
+
     unsafe fn resume(&mut self) -> GeneratorState<Self::Yield, Self::Return> {
         match self.generator.resume() {
             GeneratorState::Yielded(y) => GeneratorState::Yielded((self.func)(y)),
@@ -81,9 +90,11 @@ mod tests {
 
         let mut mapped = g.map(|item| item * 10);
 
-        assert_eq!(mapped.next(), Some(100));
-        assert_eq!(mapped.next(), Some(200));
-        assert_eq!(mapped.next(), Some(300));
-        assert_eq!(mapped.next(), None);
+        let mut pin = mapped.freeze();
+
+        assert_eq!(GenTrait::next(pin.reborrow()), Some(100));
+        assert_eq!(GenTrait::next(pin.reborrow()), Some(200));
+        assert_eq!(GenTrait::next(pin.reborrow()), Some(300));
+        assert_eq!(GenTrait::next(pin.reborrow()), None);
     }
 }
