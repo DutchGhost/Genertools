@@ -4,7 +4,7 @@ use std::marker::Unpin;
 /// Converts a mutable reference into a Pinned reference.
 pub trait AsPin<T: ?Sized + Unpin> {
 
-    /// Performs the conver
+    /// Performs the conversion.
     fn as_pin(&mut self) -> PinMut<T>;
 }
 
