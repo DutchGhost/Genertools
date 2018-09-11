@@ -1,7 +1,7 @@
 use std::ops::{Generator, GeneratorState};
 use std::pin::PinMut;
 use std::marker::Unpin;
-use std::ops::Deref;
+use pinmut::AsPin;
 
 pub trait GenTrait {
     type Yielding;
@@ -19,11 +19,12 @@ pub trait GenTrait {
         Map::new(self, f)
     }
 
-    fn freeze(&mut self) -> PinMut<Self>
+    fn filter<F>(self, f: F) -> Filter<Self, F>
     where
-        Self: Unpin
+        Self: Sized,
+        F: Fn(&Self::Yielding) -> bool
     {
-        PinMut::new(self)
+        Filter::new(self, f)
     }
 }
 
@@ -76,6 +77,43 @@ where
     }
 }
 
+pub struct Filter<G, F> {
+    generator: G,
+    pred: F
+}
+
+impl <G, F> Filter<G, F> {
+    pub fn new(generator: G, pred: F) -> Self {
+        Self {
+            generator,
+            pred
+        }
+    }
+}
+
+impl <G, F> Generator for Filter<G, F>
+where
+    G: Generator,
+    F: Fn(&G::Yield) -> bool
+{
+    type Yield = G::Yield;
+    type Return = G::Return;
+
+    unsafe fn resume(&mut self) -> GeneratorState<Self::Yield, Self::Return> {
+        loop {
+            match self.generator.resume() {
+                GeneratorState::Yielded(y) => {
+                    if (self.pred)(&y) {
+                        break GeneratorState::Yielded(y)
+                    }
+                    continue;
+                }
+                GeneratorState::Complete(r) => break GeneratorState::Complete(r)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,11 +126,10 @@ mod tests {
             yield 30;
         };
 
-        let mut mapped = g.map(|item| item * 10);
+        let mut mapped = g.map(|item| item * 10).filter(|item| item > &199);
 
-        let mut pin = mapped.freeze();
+        let mut pin = mapped.as_pin();
 
-        assert_eq!(GenTrait::next(pin.reborrow()), Some(100));
         assert_eq!(GenTrait::next(pin.reborrow()), Some(200));
         assert_eq!(GenTrait::next(pin.reborrow()), Some(300));
         assert_eq!(GenTrait::next(pin.reborrow()), None);
