@@ -1,4 +1,4 @@
-use std::ops::{GeneratorState};
+use std::ops::GeneratorState;
 
 #[macro_export]
 macro_rules! iter {
