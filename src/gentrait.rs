@@ -11,6 +11,7 @@ pub trait GenTrait {
 
     unsafe fn resume(PinMut<Self>) -> GeneratorState<Self::Yielding, Self::Returning>;
 
+    #[inline]
     fn map<U, F>(self, f: F) -> Map<Self, F>
     where
         Self: Sized,
@@ -19,6 +20,7 @@ pub trait GenTrait {
         Map::new(self, f)
     }
 
+    #[inline]
     fn filter<F>(self, f: F) -> Filter<Self, F>
     where
         Self: Sized,
@@ -27,6 +29,7 @@ pub trait GenTrait {
         Filter::new(self, f)
     }
 
+    #[inline]
     fn iter(&mut self) -> Iter<Self>
     where
         Self: Sized + Unpin,
@@ -42,6 +45,7 @@ where
     type Yielding = G::Yield;
     type Returning = G::Return;
 
+    #[inline]
     fn next(mut ptr: PinMut<Self>) -> Option<Self::Yielding> {
         match unsafe { PinMut::get_mut(ptr.reborrow()).resume() } {
             GeneratorState::Yielded(y) => Some(y),
@@ -49,6 +53,7 @@ where
         }
     }
 
+    #[inline]
     unsafe fn resume(mut ptr: PinMut<Self>) -> GeneratorState<Self::Yielding, Self::Returning> {
         <Self as Generator>::resume(PinMut::get_mut(ptr.reborrow()))
     }
@@ -60,12 +65,16 @@ pub struct Map<G, F> {
 }
 
 impl<G, F> Map<G, F> {
+
+    #[inline]
     pub fn new(generator: G, func: F) -> Self {
         Self { generator, func }
     }
 }
 
 impl<F, G: Unpin> AsPin<G> for Map<G, F> {
+
+    #[inline]
     fn as_pin(&mut self) -> PinMut<G> {
         PinMut::new(&mut self.generator)
     }
@@ -79,6 +88,7 @@ where
     type Yield = U;
     type Return = G::Return;
 
+    #[inline]
     unsafe fn resume(&mut self) -> GeneratorState<Self::Yield, Self::Return> {
         match self.generator.resume() {
             GeneratorState::Yielded(y) => GeneratorState::Yielded((self.func)(y)),
@@ -93,12 +103,16 @@ pub struct Filter<G, F> {
 }
 
 impl<G, F> Filter<G, F> {
+
+    #[inline]
     pub fn new(generator: G, pred: F) -> Self {
         Self { generator, pred }
     }
 }
 
 impl<F, G: Unpin> AsPin<G> for Filter<G, F> {
+
+    #[inline]
     fn as_pin(&mut self) -> PinMut<G> {
         PinMut::new(&mut self.generator)
     }
@@ -112,6 +126,7 @@ where
     type Yield = G::Yield;
     type Return = G::Return;
 
+    #[inline]
     unsafe fn resume(&mut self) -> GeneratorState<Self::Yield, Self::Return> {
         loop {
             match self.generator.resume() {
@@ -132,6 +147,7 @@ where
 pub struct Iter<'a, G: 'a>(Option<PinMut<'a, G>>);
 
 impl<'a, G: Unpin + 'a> Iter<'a, G> {
+    #[inline]
     pub fn new(reference: &'a mut G) -> Self {
         Iter(Some(PinMut::new(reference)))
     }
@@ -143,6 +159,7 @@ where
 {
     type Item = G::Yielding;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let mut pin = self.0.take()?;
 
