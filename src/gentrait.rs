@@ -32,7 +32,7 @@ pub trait GenTrait {
     #[inline]
     fn iter(&mut self) -> Iter<Self>
     where
-        Self: Sized + Unpin,
+        Self: Sized + Unpin + AsPin<Self>,
     {
         Iter::new(self)
     }
@@ -80,6 +80,13 @@ impl<F, G: Unpin> AsPin<G> for Map<G, F> {
     }
 }
 
+impl <F: Unpin, G: Unpin> AsPin<Self> for Map<G, F> {
+    #[inline]
+    fn as_pin(&mut self) -> PinMut<Self> {
+        PinMut::new(self)
+    }
+}
+
 impl<U, G, F> Generator for Map<G, F>
 where
     G: Generator,
@@ -118,6 +125,13 @@ impl<F, G: Unpin> AsPin<G> for Filter<G, F> {
     }
 }
 
+impl <F: Unpin, G: Unpin> AsPin<Self> for Filter<G, F> {
+    #[inline]
+    fn as_pin(&mut self) -> PinMut<Self> {
+        PinMut::new(self)
+    }
+}
+
 impl<G, F> Generator for Filter<G, F>
 where
     G: Generator,
@@ -146,10 +160,10 @@ where
 /// Ensures that generator's resume never gets called once the generator completed.
 pub struct Iter<'a, G: 'a>(Option<PinMut<'a, G>>);
 
-impl<'a, G: Unpin + 'a> Iter<'a, G> {
+impl<'a, G: Unpin + 'a + AsPin<G>> Iter<'a, G> {
     #[inline]
     pub fn new(reference: &'a mut G) -> Self {
-        Iter(Some(PinMut::new(reference)))
+        Iter(Some(reference.as_pin()))
     }
 }
 

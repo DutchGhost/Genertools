@@ -1,7 +1,9 @@
 use std::marker::Unpin;
 use std::pin::PinMut;
 
-/// Converts a mutable reference into a Pinned reference.
+/// Converts a mutable reference into a Pinned reference. See the [`pin` module].
+///
+/// [`pin` module]: https://doc.rust-lang.org/nightly/std/pin/struct.PinMut.html
 pub trait AsPin<T: ?Sized + Unpin> {
     /// Performs the conversion.
     fn as_pin(&mut self) -> PinMut<T>;
