@@ -159,18 +159,16 @@ mod tests {
 
     #[test]
     fn generator_map() {
-        let g = move || {
-            yield 10;
+        let mut quick_iter = (move || {
+            yield 10u32;
             yield 20;
             yield 30;
-        };
+        }).map(|item| item * 10).filter(|item| item > &199);
 
-        let mut mapped = g.map(|item| item * 10).filter(|item| item > &199);
+        let mut iter = quick_iter.iter();
 
-        let mut pin = mapped.iter();
-
-        assert_eq!(pin.next(), Some(200));
-        assert_eq!(pin.next(), Some(300));
-        assert_eq!(pin.next(), None);
+        assert_eq!(iter.next(), Some(200));
+        assert_eq!(iter.next(), Some(300));
+        assert_eq!(iter.next(), None);
     }
 }
